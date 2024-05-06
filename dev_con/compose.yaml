@@ -1,0 +1,34 @@
+version: '1.0.0'
+name: myapi
+services:
+  api:
+    build:
+      context: ./dev_cont
+      dockerfile: Dockerfile.dev
+    depends_on:
+      - postgres_db
+    ports:
+      - '8000:8000'
+    networks:
+      - my_network
+
+  postgres_db:
+    image: postgres:latest
+    restart: always
+    container_name: postgres_cont
+    environment:
+      - POSTGRES_USER=talha
+      - POSTGRES_PASSWORD=my_pass
+      - POSTGRES_DB=my_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_db_vol:/var/lib/postgresql/data
+    networks:
+      - my_network
+networks:
+  my_network:
+
+volumes:
+  postgres_db_vol:
+    driver: local
