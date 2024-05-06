@@ -1,18 +1,17 @@
-from contextlib import asynccontextmanager
-from fastapi import FastAPI,Depends
-from sqlmodel import SQLModel,Field,Session,create_engine
-import os
 from dotenv import load_dotenv
 load_dotenv()
-from typing import AsyncGenerator,Annotated
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from sqlmodel import SQLModel,Field,Session,create_engine,select
+from dev_con.config.db import engine
+
+from typing import AsyncGenerator
 
 class students(SQLModel,table = True):
     id:int =Field(primary_key=True)
     name:str
 
 
-connection_string=os.getenv("DATABASE_URL")
-engine =create_engine(connection_string)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI)-> AsyncGenerator[None, None]:
@@ -25,13 +24,7 @@ def create_db_and_tables()->None:
 
 app = FastAPI(lifespan=lifespan,
               title="Hello World API with DB", 
-    version="0.0.1",
-    servers=[ 
-        {
-            "url": "http://0.0.0.0:8000", # ADD NGROK URL Here Before Creating GPT Action
-            "description": "Development Server"
-        }
-        ])
+   )
 
 def get_session():
     with Session(engine) as session:
@@ -40,11 +33,14 @@ def get_session():
 
 @app.get('/')
 def get_students():
-    return [{"name":"talha"}]
+    with Session(engine) as session:
+        stu=session.exec(select(students)).all()
+        return stu
 
-@app.post('./add_student')
-def add_stuent(student:students,session:Annotated[Session,Depends(get_session)])->students:
+@app.post('/add_student')
+def add_stuent(student:students):
+  with Session(engine) as session:  
     session.add(student)
     session.commit()
     session.refresh(student)
-    return student
+    return {"message":"added successfully"}
